@@ -81,8 +81,8 @@ const loginController = async (req, res) => {
       const newDoctor = await doctorModel({ ...req.body, status: "pending" });
       await newDoctor.save();
       const adminUser = await userModel.findOne({ isAdmin: true });
-      const notifcation = adminUser.notifcation;
-      notifcation.push({
+      const notification = adminUser.notification;
+      notification.push({
         type: "apply-doctor-request",
         message: `${newDoctor.firstName} ${newDoctor.lastName} Has Applied For A Advocate Account`,
         data: {
@@ -91,7 +91,7 @@ const loginController = async (req, res) => {
           onClickPath: "/admin/docotrs",
         },
       });
-      await userModel.findByIdAndUpdate(adminUser._id, { notifcation });
+      await userModel.findByIdAndUpdate(adminUser._id, { notification });
       res.status(201).send({
         success: true,
         message: "Advocate Account Applied SUccessfully",
@@ -106,5 +106,53 @@ const loginController = async (req, res) => {
     }
   };
 
+  //notification ctrl
+const getAllNotificationController = async (req, res) => {
+  try {
+    const user = await userModel.findOne({ _id: req.body.userId });
+    const seennotification = user.seennotification;
+    const notification = user.notification;
+    seennotification.push(...notification);
+    user.notification = [];
+    user.seennotification = notification;
+    const updatedUser = await user.save();
+    res.status(200).send({
+      success: true,
+      message: "all notification marked as read",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message: "Error in notification",
+      success: false,
+      error,
+    });
+  }
+};
 
-module.exports = {loginController,registerController , authController, applyDoctorController}
+
+// delete notifications
+const deleteAllNotificationController = async (req, res) => {
+  try {
+    const user = await userModel.findOne({ _id: req.body.userId });
+    user.notification = [];
+    user.seennotification = [];
+    const updatedUser = await user.save();
+    updatedUser.password = undefined;
+    res.status(200).send({
+      success: true,
+      message: "Notifications Deleted successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "unable to delete all notifications",
+      error,
+    });
+  }
+};
+
+module.exports = {loginController,registerController , authController, applyDoctorController, getAllNotificationController , deleteAllNotificationController}
